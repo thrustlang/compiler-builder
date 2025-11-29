@@ -90,10 +90,50 @@ pub fn show_help() -> ! {
     logging::write(
         logging::OutputIn::Stderr,
         &format!(
-            "{} {} {}\n\n",
+            "{} {} {}\n",
             "•",
             "-llvm-release-type",
             "Set LLVM release type (Debug, Release, MinSizeRel) (default: Release).",
+        ),
+    );
+
+    logging::write(
+        logging::OutputIn::Stderr,
+        &format!(
+            "{} {} {}\n",
+            "•", "-llvm-build-share-libs", "Build LLVM shared libraries (default: false).",
+        ),
+    );
+
+    logging::write(
+        logging::OutputIn::Stderr,
+        &format!(
+            "{} {} {}\n",
+            "•", "-llvm-build-x86-libs", "Build x86 (32-bit) libraries for LLVM (default: false).",
+        ),
+    );
+
+    logging::write(
+        logging::OutputIn::Stderr,
+        &format!(
+            "{} {} {}\n",
+            "•", "-llvm-build-dylib", "Build LLVM dynamic library (default: false).",
+        ),
+    );
+
+    logging::write(
+        logging::OutputIn::Stderr,
+        &format!(
+            "{} {} {}\n",
+            "•", "-llvm-link-statically-libcpp", "Link libcpp statically (default: false).",
+        ),
+    );
+
+    logging::write(
+        logging::OutputIn::Stderr,
+        &format!(
+            "{} {} {}\n\n",
+            "•", "-llvm-use-linker", "Set linker to use for LLVM build.",
         ),
     );
 

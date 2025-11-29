@@ -1,6 +1,6 @@
 use crate::logging::LoggingType;
 use crate::options::BuildOptions;
-use crate::{llvm, logging};
+use crate::{llvm, logging, utils};
 
 #[derive(Debug)]
 pub struct CompilerBuilderDependencies<'a> {
@@ -15,9 +15,7 @@ impl<'a> CompilerBuilderDependencies<'a> {
 }
 
 impl<'a> CompilerBuilderDependencies<'a> {
-    pub fn install(&self) {
-        self.reset_llvm_build_path();
-
+    pub fn build(&self) {
         if let Err(err) = self.build_llvm() {
             logging::log(LoggingType::Panic, &err);
         }
@@ -28,12 +26,17 @@ impl<'a> CompilerBuilderDependencies<'a> {
 
 impl CompilerBuilderDependencies<'_> {
     fn build_llvm(&self) -> Result<(), String> {
-        logging::log(LoggingType::Log, "Installing LLVM...\n");
-
         let llvm_build: &llvm::LLVMBuild = self.get_options().get_llvm_build();
+
+        let _ = std::fs::remove_dir_all(utils::get_compiler_dependencies_build_path());
+        let _ = std::fs::remove_dir_all(utils::get_compiler_dependencies_build_path());
+
+        logging::log(LoggingType::Log, "Downloading LLVM...\n");
 
         let llvm_downloaded: std::path::PathBuf = llvm::download_llvm(llvm_build)?;
         let llvm_source: std::path::PathBuf = llvm::decompress_llvm(llvm_build, &llvm_downloaded)?;
+
+        logging::log(LoggingType::Log, "Building LLVM...\n");
 
         llvm::prepare_build_directory(&llvm_source)?;
         llvm::build_and_install(llvm_build, llvm_downloaded, llvm_source)?;
@@ -41,14 +44,6 @@ impl CompilerBuilderDependencies<'_> {
         logging::log(LoggingType::Log, "\nLLVM installed.");
 
         Ok(())
-    }
-}
-
-impl CompilerBuilderDependencies<'_> {
-    #[inline]
-    fn reset_llvm_build_path(&self) {
-        let _ = std::fs::remove_dir_all(self.get_options().get_llvm_build_path());
-        let _ = std::fs::create_dir_all(self.get_options().get_llvm_build_path());
     }
 }
 

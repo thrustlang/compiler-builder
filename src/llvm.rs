@@ -10,8 +10,9 @@ use isahc::Response;
 use isahc::config::Configurable;
 use isahc::config::RedirectPolicy;
 
-use crate::logging;
-use crate::logging::LoggingType;
+use crate::utils;
+
+const DEFAULT_LLVM_SOURCE_URL: &str = "https://github.com/llvm/llvm-project/releases/download/llvmorg-17.0.6/llvm-project-17.0.6.src.tar.xz";
 
 #[derive(Debug)]
 pub struct LLVMBuild {
@@ -28,6 +29,13 @@ pub struct LLVMBuild {
     release_type: LLVMReleaseType,
 
     url: String,
+
+    build_share_libs: bool,
+    build_x86_libs: bool,
+    build_llvm_dylib: bool,
+    static_link_libcpp: bool,
+
+    use_linker: String,
 }
 
 impl LLVMBuild {
@@ -46,7 +54,14 @@ impl LLVMBuild {
 
             release_type: LLVMReleaseType::Release,
 
-            url: self::get_default_llvm_url(),
+            url: DEFAULT_LLVM_SOURCE_URL.into(),
+
+            build_share_libs: false,
+            build_x86_libs: false,
+            build_llvm_dylib: false,
+            static_link_libcpp: false,
+
+            use_linker: String::new(),
         }
     }
 }
@@ -90,6 +105,31 @@ impl LLVMBuild {
     #[inline]
     pub fn set_cpp_flags(&mut self, cppflags: String) {
         self.cppflags = cppflags;
+    }
+
+    #[inline]
+    pub fn set_build_share_libs(&mut self, build_share_libs: bool) {
+        self.build_share_libs = build_share_libs;
+    }
+
+    #[inline]
+    pub fn set_x86_libs(&mut self, build_x86_libs: bool) {
+        self.build_x86_libs = build_x86_libs;
+    }
+
+    #[inline]
+    pub fn set_dylib(&mut self, build_llvm_dylib: bool) {
+        self.build_llvm_dylib = build_llvm_dylib;
+    }
+
+    #[inline]
+    pub fn set_static_link_libcpp(&mut self, static_link_libcpp: bool) {
+        self.static_link_libcpp = static_link_libcpp;
+    }
+
+    #[inline]
+    pub fn set_linker(&mut self, linker: String) {
+        self.use_linker = linker;
     }
 
     #[inline]
@@ -150,6 +190,31 @@ impl LLVMBuild {
     #[inline]
     pub fn url(&self) -> &str {
         &self.url
+    }
+
+    #[inline]
+    pub fn share_libs(&self) -> bool {
+        self.build_share_libs
+    }
+
+    #[inline]
+    pub fn x86_libs(&self) -> bool {
+        self.build_x86_libs
+    }
+
+    #[inline]
+    pub fn dylib(&self) -> bool {
+        self.build_llvm_dylib
+    }
+
+    #[inline]
+    pub fn static_link_libcpp(&self) -> bool {
+        self.static_link_libcpp
+    }
+
+    #[inline]
+    pub fn linker(&self) -> &str {
+        &self.use_linker
     }
 }
 
@@ -300,9 +365,71 @@ pub fn build_and_install(
 ) -> Result<(), String> {
     let build_dir: PathBuf = llvm_source.join("llvm").join("build");
     let parent: &Path = build_dir.parent().unwrap_or(&build_dir);
-    let install_dir: PathBuf = self::get_thrushlang_install_path();
+    let install_dir: PathBuf = utils::get_compiler_dependencies_build_path();
 
-    run_command_with_live_output(
+    let mut cmake_binding: Command = Command::new("cmake");
+
+    let cmake_command: &mut Command = cmake_binding
+        .arg("-G")
+        .arg("Ninja")
+        .arg("-S")
+        .arg(parent)
+        .arg("-B")
+        .arg(&build_dir)
+        .arg(format!(
+            "-DCMAKE_BUILD_TYPE={}",
+            llvm_build.release_type().get_repr()
+        ))
+        .arg(format!("-DCMAKE_C_COMPILER={}", llvm_build.c_compiler()))
+        .arg(format!(
+            "-DCMAKE_CXX_COMPILER={}",
+            llvm_build.cpp_compiler()
+        ))
+        .arg(format!("-DCMAKE_C_FLAGS={}", llvm_build.c_flags()))
+        .arg(format!("-DCMAKE_CXX_FLAGS={}", llvm_build.cpp_flags()))
+        .arg("-DCMAKE_DISABLE_FIND_PACKAGE_LibXml2=TRUE")
+        .arg("-DLLVM_ENABLE_LIBXML2=0")
+        .arg("-DLLVM_TARGETS_TO_BUILD=all")
+        .arg("-DLLVM_ENABLE_PROJECTS=llvm")
+        .arg("-DLLVM_ENABLE_TERMINFO=OFF")
+        .arg("-DLLVM_ENABLE_ZLIB=OFF")
+        .arg(format!("-DCMAKE_INSTALL_PREFIX={}", install_dir.display()))
+        .args([
+            "-DLLVM_INCLUDE_BENCHMARKS=OFF",
+            "-DLLVM_BUILD_TESTS=OFF",
+            "-DLLVM_BUILD_EXAMPLES=OFF",
+            "-DLLVM_INCLUDE_TESTS=OFF",
+        ]);
+
+    if !llvm_build.linker().is_empty() {
+        cmake_command.arg(format!("-DLLVM_USE_LINKER={}", llvm_build.linker()));
+    }
+
+    if llvm_build.static_link_libcpp() {
+        cmake_command.arg("-DLLVM_STATIC_LINK_CXX_STDLIB=ON");
+    } else {
+        cmake_command.arg("-DLLVM_STATIC_LINK_CXX_STDLIB=OFF");
+    }
+
+    if llvm_build.share_libs() {
+        cmake_command.arg("-DBUILD_SHARED_LIBS=ON");
+    } else {
+        cmake_command.arg("-DBUILD_SHARED_LIBS=OFF");
+    }
+
+    if llvm_build.x86_libs() {
+        cmake_command.arg("-DLLVM_BUILD_32_BITS=ON");
+    } else {
+        cmake_command.arg("-DLLVM_BUILD_32_BITS=OFF");
+    }
+
+    if llvm_build.dylib() {
+        cmake_command.arg("-DLLVM_BUILD_LLVM_DYLIB=ON");
+    } else {
+        cmake_command.arg("-DLLVM_BUILD_LLVM_DYLIB=OFF");
+    }
+
+    self::run_command_with_live_output(
         Command::new("cmake")
             .arg("-G")
             .arg("Ninja")
@@ -338,13 +465,13 @@ pub fn build_and_install(
         &llvm_source,
     )?;
 
-    run_command_with_live_output(
+    self::run_command_with_live_output(
         Command::new("ninja").arg("-C").arg(&build_dir),
         &llvm_archive_path,
         &llvm_source,
     )?;
 
-    run_command_with_live_output(
+    self::run_command_with_live_output(
         Command::new("ninja")
             .arg("-C")
             .arg(&build_dir)
@@ -359,34 +486,6 @@ pub fn build_and_install(
 fn clear_llvm_build(llvm_archive_path: &Path, llvm_source: &Path) {
     let _ = std::fs::remove_file(llvm_archive_path);
     let _ = std::fs::remove_dir_all(llvm_source);
-}
-
-fn get_thrushlang_install_path() -> PathBuf {
-    match std::env::consts::FAMILY {
-        "unix" => PathBuf::from(std::env::var("HOME").unwrap_or_else(|_| {
-            logging::log(LoggingType::Panic, "Missing $HOME environment variable.\n");
-            std::process::exit(1);
-        }))
-        .join("thrushlang/backends/llvm/build"),
-
-        "windows" => PathBuf::from(std::env::var("APPDATA").unwrap_or_else(|_| {
-            logging::log(
-                LoggingType::Panic,
-                "Missing $APPDATA environment variable.\n",
-            );
-            std::process::exit(1);
-        }))
-        .join("thrushlang/backends/llvm/build"),
-
-        _ => {
-            logging::log(
-                LoggingType::Panic,
-                "Unsopported OS for build Thrush Programming Language backend build.",
-            );
-
-            std::process::exit(1);
-        }
-    }
 }
 
 fn get_descompressed_folder_directory(llvm_build: &LLVMBuild) -> String {
@@ -424,11 +523,4 @@ fn system_temp_dir() -> PathBuf {
         }
         return PathBuf::from(r"C:\Temp");
     }
-}
-
-fn get_default_llvm_url() -> String {
-    format!(
-        "https://github.com/llvm/llvm-project/releases/download/llvmorg-{}.{}.{}/llvm-project-{}.{}.{}.src.tar.xz",
-        17, 0, 6, 17, 0, 6
-    )
 }

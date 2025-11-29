@@ -16,5 +16,5 @@ fn main() {
 
     let cli: CommandLine = CommandLine::parse(std::env::args().collect());
 
-    CompilerBuilderDependencies::new(cli.get_options()).install();
+    CompilerBuilderDependencies::new(cli.get_options()).build();
 }

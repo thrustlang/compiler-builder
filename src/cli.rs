@@ -74,18 +74,10 @@ impl CommandLine {
         self.check_requirements();
 
         self.prepare();
-
-        self.validate();
     }
 
     fn prepare(&mut self) {
         self.get_mut_options().get_mut_llvm_build().set_url();
-    }
-
-    fn validate(&self) {
-        if let Err(error) = self.options.verify() {
-            self.report_error(&error);
-        }
     }
 
     fn check_requirements(&self) {
@@ -235,6 +227,66 @@ impl CommandLine {
                             .set_release_type(llvm::LLVMReleaseType::Release);
                     }
                 }
+
+                self.advance();
+            }
+
+            "-llvm-build-share-libs" => {
+                self.advance();
+
+                let build_share_libs: bool = self.peek().to_string().parse().unwrap_or(true);
+
+                self.get_mut_options()
+                    .get_mut_llvm_build()
+                    .set_build_share_libs(build_share_libs);
+
+                self.advance();
+            }
+
+            "-llvm-build-x86-libs" => {
+                self.advance();
+
+                let build_x86_libs: bool = self.peek().to_string().parse().unwrap_or(true);
+
+                self.get_mut_options()
+                    .get_mut_llvm_build()
+                    .set_x86_libs(build_x86_libs);
+
+                self.advance();
+            }
+
+            "-llvm-build-dylib" => {
+                self.advance();
+
+                let build_dylib: bool = self.peek().to_string().parse().unwrap_or(true);
+
+                self.get_mut_options()
+                    .get_mut_llvm_build()
+                    .set_dylib(build_dylib);
+
+                self.advance();
+            }
+
+            "-llvm-link-statically-libcpp" => {
+                self.advance();
+
+                let link_statically_libcpp: bool = self.peek().to_string().parse().unwrap_or(true);
+
+                self.get_mut_options()
+                    .get_mut_llvm_build()
+                    .set_static_link_libcpp(link_statically_libcpp);
+
+                self.advance();
+            }
+
+            "-llvm-use-linker" => {
+                self.advance();
+
+                let use_linker: String = self.peek().to_string();
+
+                self.get_mut_options()
+                    .get_mut_llvm_build()
+                    .set_linker(use_linker);
 
                 self.advance();
             }

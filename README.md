@@ -7,3 +7,11 @@ This small tool builds the necessary dependencies for the compiler and places th
 ### Dependencies that it builds
 
 - LLVM.
+
+If you need help, you can use the command:
+
+```console
+$ compiler-builder --help
+```
+Or you can look at COMMANDS.md.
+
