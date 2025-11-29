@@ -6,7 +6,8 @@ This small tool builds the necessary dependencies for the compiler and places th
 
 ### Dependencies that it builds
 
-- LLVM.
+- LLVM. (http://llvm.org/)
+- GCC. (https://gcc.gnu.org/)
 
 If you need help, you can use the command:
 
