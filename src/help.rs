@@ -314,7 +314,25 @@ pub fn show_help() -> ! {
 
     logging::write(
         logging::OutputIn::Stderr,
-        "For more information: https://gcc.gnu.org/onlinedocs/jit/internals/index.html#working-on-the-jit-library",
+        "For more information: https://gcc.gnu.org/onlinedocs/jit/internals/index.html#working-on-the-jit-library\n\n",
+    );
+
+    logging::write(logging::OutputIn::Stderr, "Useful flags:\n\n");
+
+    logging::write(
+        logging::OutputIn::Stderr,
+        &format!(
+            "{} {} {}\n",
+            "•", "--debug-llvm", "Debug LLVM build commands.",
+        ),
+    );
+
+    logging::write(
+        logging::OutputIn::Stderr,
+        &format!(
+            "{} {} {}\n\n",
+            "•", "--debug-gcc", "Debug GCC build commands.",
+        ),
     );
 
     std::process::exit(1);

@@ -13,6 +13,8 @@ use isahc::Response;
 use isahc::config::Configurable;
 use isahc::config::RedirectPolicy;
 
+use crate::logging;
+
 const DEFAULT_GCC_SOURCE_URL: &str =
     "https://github.com/gcc-mirror/gcc/archive/refs/tags/releases/gcc-15.2.0.tar.gz";
 
@@ -30,6 +32,8 @@ pub struct GCCBuild {
 
     c_compiler_flags: String,
     cpp_compiler_flags: String,
+
+    debug_commands: bool,
 }
 
 impl GCCBuild {
@@ -48,6 +52,8 @@ impl GCCBuild {
 
             c_compiler_flags: String::new(),
             cpp_compiler_flags: String::new(),
+
+            debug_commands: false,
         }
     }
 }
@@ -90,6 +96,11 @@ impl GCCBuild {
     #[inline]
     pub fn set_cpp_compiler_command(&mut self, command: String) {
         self.cpp_compiler_command = command;
+    }
+
+    #[inline]
+    pub fn set_debug_commands(&mut self, debug_commands: bool) {
+        self.debug_commands = debug_commands;
     }
 
     #[inline]
@@ -164,6 +175,11 @@ impl GCCBuild {
     pub fn cpp_compiler_command(&self) -> &str {
         &self.cpp_compiler_command
     }
+
+    #[inline]
+    pub fn debug_commands(&self) -> bool {
+        self.debug_commands
+    }
 }
 
 pub fn download_gcc(gcc_build: &GCCBuild) -> Result<PathBuf, String> {
@@ -217,6 +233,13 @@ pub fn decompress_gcc(gcc_build: &GCCBuild, gcc_archive_path: &Path) -> Result<P
         .arg(gcc_archive_path)
         .arg("-C")
         .arg(self::get_system_temp_dir());
+
+    if gcc_build.debug_commands() {
+        logging::log(
+            logging::LoggingType::Debug,
+            &format!("Executing tar command: {:?}", tar_command),
+        );
+    }
 
     if tar_command
         .status()
@@ -286,6 +309,7 @@ pub fn build_and_install(
     std::env::set_current_dir(build_dir).map_err(|_| "Failed to set current dir!")?;
 
     let mut configure_binding: Command = Command::new("../configure");
+
     let configure_command: &mut Command = configure_binding
         .arg("--enable-languages=jit")
         .arg("--disable-bootstrap");
@@ -294,9 +318,24 @@ pub fn build_and_install(
         configure_command.arg("--enable-host-shared");
     }
 
-    self::run_command_with_live_output(configure_command, &gcc_archive_path, &gcc_source)?;
+    if gcc_build.debug_commands() {
+        logging::log(
+            logging::LoggingType::Debug,
+            &format!("Executing GNU configure command: {:?}", configure_command),
+        );
+    }
 
-    self::run_command_with_live_output(&mut Command::new("make"), &gcc_archive_path, &gcc_source)?;
+    let mut make_command: Command = Command::new("make");
+
+    if gcc_build.debug_commands() {
+        logging::log(
+            logging::LoggingType::Debug,
+            &format!("Executing GNU make command: {:?}", make_command),
+        );
+    }
+
+    self::run_command_with_live_output(configure_command, &gcc_archive_path, &gcc_source)?;
+    self::run_command_with_live_output(&mut make_command, &gcc_archive_path, &gcc_source)?;
 
     std::env::set_current_dir(previous_current_dir).map_err(|_| "Failed to set current dir!")?;
 

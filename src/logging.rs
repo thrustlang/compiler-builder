@@ -4,7 +4,7 @@ use std::fmt::Display;
 pub enum LoggingType {
     Error,
     Panic,
-    Log,
+    Debug,
 }
 
 #[derive(Debug)]
@@ -18,7 +18,7 @@ impl Display for LoggingType {
         match self {
             LoggingType::Error => write!(f, "ERROR"),
             LoggingType::Panic => write!(f, "PANIC"),
-            LoggingType::Log => write!(f, "LOG"),
+            LoggingType::Debug => write!(f, "DEBUG"),
         }
     }
 }

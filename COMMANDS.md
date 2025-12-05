@@ -54,5 +54,10 @@ GCC build flags:
 • --gcc-c-compiler-command [gcc] Set C compiler command for GCC build.
 • --gcc-cpp-compiler-command [g++] Set C++ compiler command for GCC build.
 
-For more information: https://gcc.gnu.org/onlinedocs/jit/internals/index.html#working-on-the-jit-library⏎    
+For more information: https://gcc.gnu.org/onlinedocs/jit/internals/index.html#working-on-the-jit-library
+
+Useful flags:
+
+• --debug-llvm Debug LLVM build commands.
+• --debug-gcc Debug GCC build commands.
 ```

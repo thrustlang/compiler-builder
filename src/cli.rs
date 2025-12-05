@@ -101,11 +101,8 @@ impl CommandLine {
             utils::tar_is_available() && utils::cmake_is_available() && utils::ninja_is_available();
 
         if !failed {
-            logging::log(LoggingType::Log, "Requirements aren't ok!\n\n");
-            process::exit(1);
+            logging::log(LoggingType::Panic, "Requirements aren't ok!\n\n");
         }
-
-        logging::log(LoggingType::Log, "Requirements are ok.\n\n");
     }
 }
 
@@ -473,6 +470,22 @@ impl CommandLine {
                     .set_cpp_compiler_command(command);
 
                 self.advance();
+            }
+
+            "--debug-llvm" => {
+                self.advance();
+
+                self.get_mut_options()
+                    .get_mut_llvm_build()
+                    .set_debug_commands(true);
+            }
+
+            "--debug-gcc" => {
+                self.advance();
+
+                self.get_mut_options()
+                    .get_mut_gcc_build()
+                    .set_debug_commands(true);
             }
 
             _ => {

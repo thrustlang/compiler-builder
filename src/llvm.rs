@@ -10,7 +10,7 @@ use isahc::Response;
 use isahc::config::Configurable;
 use isahc::config::RedirectPolicy;
 
-use crate::utils;
+use crate::{logging, utils};
 
 const DEFAULT_LLVM_SOURCE_URL: &str = "https://github.com/llvm/llvm-project/releases/download/llvmorg-17.0.6/llvm-project-17.0.6.src.tar.xz";
 
@@ -43,6 +43,8 @@ pub struct LLVMBuild {
     temporarily_allow_old_toolchain: bool,
 
     use_linker: String,
+
+    debug_commands: bool,
 }
 
 impl LLVMBuild {
@@ -76,6 +78,8 @@ impl LLVMBuild {
             temporarily_allow_old_toolchain: false,
 
             use_linker: String::new(),
+
+            debug_commands: false,
         }
     }
 }
@@ -179,6 +183,11 @@ impl LLVMBuild {
     #[inline]
     pub fn set_optimize_tblgen(&mut self, optimize_tblgen: bool) {
         self.optimize_tblgen = optimize_tblgen;
+    }
+
+    #[inline]
+    pub fn set_debug_commands(&mut self, value: bool) {
+        self.debug_commands = value;
     }
 
     #[inline]
@@ -300,6 +309,11 @@ impl LLVMBuild {
     pub fn optimize_tblgen(&self) -> bool {
         self.optimize_tblgen
     }
+
+    #[inline]
+    pub fn debug_commands(&self) -> bool {
+        self.debug_commands
+    }
 }
 
 #[derive(Debug, Default)]
@@ -311,8 +325,6 @@ pub enum LLVMReleaseType {
 
     MinSizeRel,
 }
-
-//------------------------------------------------------------------------------------------------------------------
 
 impl LLVMReleaseType {
     #[inline]
@@ -380,6 +392,13 @@ pub fn decompress_llvm(
         .arg(llvm_archive_path)
         .arg("-C")
         .arg(self::get_system_temp_dir());
+
+    if llvm_build.debug_commands() {
+        logging::log(
+            logging::LoggingType::Debug,
+            &format!("Executing tar command: {:?}", tar_command),
+        );
+    }
 
     if tar_command
         .status()
@@ -535,22 +554,42 @@ pub fn build_and_install(
         cmake_command.arg("-DLLVM_BUILD_LLVM_DYLIB=ON");
     }
 
+    if llvm_build.debug_commands() {
+        logging::log(
+            logging::LoggingType::Debug,
+            &format!("Executing CMake command: {:?}", cmake_command),
+        );
+    }
+
     self::run_command_with_live_output(cmake_command, &llvm_archive_path, &llvm_source)?;
 
-    self::run_command_with_live_output(
-        Command::new("ninja").arg("-C").arg(&build_dir),
-        &llvm_archive_path,
-        &llvm_source,
-    )?;
+    let mut ninja_build_binding: Command = Command::new("ninja");
+    let ninja_build_command: &mut Command = ninja_build_binding.arg("-C").arg(&build_dir);
 
-    self::run_command_with_live_output(
-        Command::new("ninja")
-            .arg("-C")
-            .arg(&build_dir)
-            .arg("install"),
-        &llvm_archive_path,
-        &llvm_source,
-    )?;
+    if llvm_build.debug_commands() {
+        logging::log(
+            logging::LoggingType::Debug,
+            &format!("Executing Ninja command: {:?}", ninja_build_command),
+        );
+    }
+
+    self::run_command_with_live_output(ninja_build_command, &llvm_archive_path, &llvm_source)?;
+
+    let mut ninja_install_binding: Command = Command::new("ninja");
+
+    let ninja_install_command: &mut Command = ninja_install_binding
+        .arg("-C")
+        .arg(&build_dir)
+        .arg("install");
+
+    if llvm_build.debug_commands() {
+        logging::log(
+            logging::LoggingType::Debug,
+            &format!("Executing Ninja command: {:?}", ninja_install_command),
+        );
+    }
+
+    self::run_command_with_live_output(ninja_install_command, &llvm_archive_path, &llvm_source)?;
 
     Ok(())
 }
