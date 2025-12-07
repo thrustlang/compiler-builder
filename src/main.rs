@@ -12,10 +12,12 @@ mod options;
 mod targets;
 mod utils;
 
-fn main() {
+fn main() -> ! {
     unsafe { std::env::set_var("CARGO_TERM_VERBOSE", "true") };
 
     let cli: CommandLine = CommandLine::parse(std::env::args().collect());
 
     CompilerBuilderDependencies::new(cli.get_options()).build();
+
+    std::process::exit(0);
 }

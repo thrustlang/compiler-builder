@@ -6,8 +6,6 @@ use crate::logging::LoggingType;
 use crate::options::BuildOptions;
 use crate::utils;
 
-use std::process;
-
 #[derive(Debug)]
 pub struct CommandLine {
     options: BuildOptions,
@@ -122,7 +120,7 @@ impl CommandLine {
                     logging::OutputIn::Stdout,
                     constants::COMPILER_BUILDER_VERSION,
                 );
-                process::exit(0);
+                std::process::exit(0);
             }
 
             "--llvm-major" => {
@@ -517,7 +515,7 @@ impl CommandLine {
     #[inline]
     fn report_error(&self, msg: &str) -> ! {
         logging::log(LoggingType::Error, msg);
-        process::exit(1)
+        std::process::exit(1)
     }
 
     #[inline]
