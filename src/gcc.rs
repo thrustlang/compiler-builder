@@ -2,9 +2,7 @@ use std::io::BufRead;
 use std::io::BufReader;
 use std::path::Path;
 use std::path::PathBuf;
-use std::process::Command;
 use std::process::Stdio;
-use std::thread;
 
 use isahc::Body;
 use isahc::HttpClient;
@@ -226,7 +224,7 @@ pub fn download_gcc(gcc_build: &GCCBuild) -> Result<PathBuf, String> {
 }
 
 pub fn decompress_gcc(gcc_build: &GCCBuild, gcc_archive_path: &Path) -> Result<PathBuf, String> {
-    let mut tar_command: Command = Command::new("tar");
+    let mut tar_command: std::process::Command = std::process::Command::new("tar");
 
     tar_command
         .arg("-xf")
@@ -253,7 +251,7 @@ pub fn decompress_gcc(gcc_build: &GCCBuild, gcc_archive_path: &Path) -> Result<P
 }
 
 fn run_command_with_live_output(
-    cmd: &mut Command,
+    cmd: &mut std::process::Command,
     gcc_archive_path: &Path,
     gcc_source: &Path,
 ) -> Result<(), String> {
@@ -267,14 +265,14 @@ fn run_command_with_live_output(
     let stdout: std::process::ChildStdout = child.stdout.take().unwrap();
     let stderr: std::process::ChildStderr = child.stderr.take().unwrap();
 
-    let stdout_thread: thread::JoinHandle<()> = thread::spawn(move || {
+    let stdout_thread: std::thread::JoinHandle<()> = std::thread::spawn(move || {
         let reader = BufReader::new(stdout);
         for line in reader.lines().map_while(Result::ok) {
             println!("{}", line);
         }
     });
 
-    let stderr_thread: thread::JoinHandle<()> = thread::spawn(move || {
+    let stderr_thread: std::thread::JoinHandle<()> = std::thread::spawn(move || {
         let reader: BufReader<std::process::ChildStderr> = BufReader::new(stderr);
         for line in reader.lines().map_while(Result::ok) {
             eprintln!("{}", line);
@@ -308,9 +306,9 @@ pub fn build_and_install(
 
     std::env::set_current_dir(build_dir).map_err(|_| "Failed to set current dir!")?;
 
-    let mut configure_binding: Command = Command::new("../configure");
+    let mut configure_binding: std::process::Command = std::process::Command::new("../configure");
 
-    let configure_command: &mut Command = configure_binding
+    let configure_command: &mut std::process::Command = configure_binding
         .arg("--enable-languages=jit")
         .arg("--disable-bootstrap");
 
@@ -325,7 +323,7 @@ pub fn build_and_install(
         );
     }
 
-    let mut make_command: Command = Command::new("make");
+    let mut make_command: std::process::Command = std::process::Command::new("make");
 
     if gcc_build.debug_commands() {
         logging::log(

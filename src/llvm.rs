@@ -1,7 +1,6 @@
 use std::io::{BufRead, BufReader};
 use std::path::{Path, PathBuf};
-use std::process::{Command, Stdio};
-use std::thread;
+use std::process::Stdio;
 
 use isahc::Body;
 use isahc::HttpClient;
@@ -385,7 +384,7 @@ pub fn decompress_llvm(
     llvm_build: &LLVMBuild,
     llvm_archive_path: &Path,
 ) -> Result<PathBuf, String> {
-    let mut tar_command: Command = Command::new("tar");
+    let mut tar_command: std::process::Command = std::process::Command::new("tar");
 
     tar_command
         .arg("-xf")
@@ -420,7 +419,7 @@ pub fn prepare_build_directory(llvm_source: &Path) -> Result<(), String> {
 }
 
 fn run_command_with_live_output(
-    cmd: &mut Command,
+    cmd: &mut std::process::Command,
     llvm_archive_path: &Path,
     llvm_source: &Path,
 ) -> Result<(), String> {
@@ -434,14 +433,14 @@ fn run_command_with_live_output(
     let stdout: std::process::ChildStdout = child.stdout.take().unwrap();
     let stderr: std::process::ChildStderr = child.stderr.take().unwrap();
 
-    let stdout_thread: thread::JoinHandle<()> = thread::spawn(move || {
+    let stdout_thread: std::thread::JoinHandle<()> = std::thread::spawn(move || {
         let reader = BufReader::new(stdout);
         for line in reader.lines().map_while(Result::ok) {
             println!("{}", line);
         }
     });
 
-    let stderr_thread: thread::JoinHandle<()> = thread::spawn(move || {
+    let stderr_thread: std::thread::JoinHandle<()> = std::thread::spawn(move || {
         let reader: BufReader<std::process::ChildStderr> = BufReader::new(stderr);
         for line in reader.lines().map_while(Result::ok) {
             eprintln!("{}", line);
@@ -472,9 +471,9 @@ pub fn build_and_install(
     let parent: &Path = build_dir.parent().unwrap_or(&build_dir);
     let install_dir: PathBuf = utils::get_compiler_dependencies_build_path();
 
-    let mut cmake_binding: Command = Command::new("cmake");
+    let mut cmake_binding: std::process::Command = std::process::Command::new("cmake");
 
-    let cmake_command: &mut Command = cmake_binding
+    let cmake_command: &mut std::process::Command = cmake_binding
         .arg("-G")
         .arg("Ninja")
         .arg("-S")
@@ -495,7 +494,7 @@ pub fn build_and_install(
         .arg("-DCMAKE_DISABLE_FIND_PACKAGE_LibXml2=TRUE")
         .arg("-DLLVM_ENABLE_LIBXML2=0")
         .arg("-DLLVM_TARGETS_TO_BUILD=all")
-        .arg("-DLLVM_ENABLE_PROJECTS=llvm;lld")
+        .arg("-DLLVM_ENABLE_PROJECTS=llvm")
         .arg("-DLLVM_ENABLE_TERMINFO=OFF")
         .arg("-DLLVM_ENABLE_ZLIB=OFF")
         .arg(format!("-DCMAKE_INSTALL_PREFIX={}", install_dir.display()))
@@ -563,8 +562,9 @@ pub fn build_and_install(
 
     self::run_command_with_live_output(cmake_command, &llvm_archive_path, &llvm_source)?;
 
-    let mut ninja_build_binding: Command = Command::new("ninja");
-    let ninja_build_command: &mut Command = ninja_build_binding.arg("-C").arg(&build_dir);
+    let mut ninja_build_binding: std::process::Command = std::process::Command::new("ninja");
+    let ninja_build_command: &mut std::process::Command =
+        ninja_build_binding.arg("-C").arg(&build_dir);
 
     if llvm_build.debug_commands() {
         logging::log(
@@ -575,9 +575,9 @@ pub fn build_and_install(
 
     self::run_command_with_live_output(ninja_build_command, &llvm_archive_path, &llvm_source)?;
 
-    let mut ninja_install_binding: Command = Command::new("ninja");
+    let mut ninja_install_binding: std::process::Command = std::process::Command::new("ninja");
 
-    let ninja_install_command: &mut Command = ninja_install_binding
+    let ninja_install_command: &mut std::process::Command = ninja_install_binding
         .arg("-C")
         .arg(&build_dir)
         .arg("install");

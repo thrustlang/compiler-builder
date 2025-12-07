@@ -1,5 +1,3 @@
-use std::fmt::Display;
-
 #[derive(Debug, PartialEq)]
 pub enum LoggingType {
     Error,
@@ -13,7 +11,7 @@ pub enum OutputIn {
     Stderr,
 }
 
-impl Display for LoggingType {
+impl std::fmt::Display for LoggingType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             LoggingType::Error => write!(f, "ERROR"),

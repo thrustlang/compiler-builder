@@ -60,6 +60,26 @@ impl CommandLine {
 
         command_line
     }
+
+    fn preprocess_args(args: &mut Vec<String>) -> Vec<String> {
+        let mut processed: Vec<String> = Vec::with_capacity(args.len() * 2);
+
+        if !args.is_empty() {
+            args.remove(0);
+        }
+
+        args.iter().for_each(|arg| {
+            let parsed: ParsedArg = ParsedArg::new(arg);
+
+            processed.push(parsed.key);
+
+            if let Some(value) = parsed.value {
+                processed.push(value);
+            }
+        });
+
+        processed
+    }
 }
 
 impl CommandLine {
@@ -521,28 +541,6 @@ impl CommandLine {
     #[inline]
     fn is_eof(&self) -> bool {
         self.current >= self.args.len()
-    }
-}
-
-impl CommandLine {
-    fn preprocess_args(args: &mut Vec<String>) -> Vec<String> {
-        let mut processed: Vec<String> = Vec::with_capacity(args.len() * 2);
-
-        if !args.is_empty() {
-            args.remove(0);
-        }
-
-        args.iter().for_each(|arg| {
-            let parsed: ParsedArg = ParsedArg::new(arg);
-
-            processed.push(parsed.key);
-
-            if let Some(value) = parsed.value {
-                processed.push(value);
-            }
-        });
-
-        processed
     }
 }
 
