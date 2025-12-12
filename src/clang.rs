@@ -14,7 +14,7 @@ use crate::{logging, utils};
 const DEFAULT_LLVM_SOURCE_URL: &str = "https://github.com/llvm/llvm-project/releases/download/llvmorg-17.0.6/llvm-project-17.0.6.src.tar.xz";
 
 #[derive(Debug)]
-pub struct LLVMBuild {
+pub struct LibClang {
     major: u32,
     minor: u32,
     patch: u32,
@@ -46,7 +46,7 @@ pub struct LLVMBuild {
     debug_commands: bool,
 }
 
-impl LLVMBuild {
+impl LibClang {
     #[inline]
     pub fn new() -> Self {
         Self {
@@ -71,7 +71,7 @@ impl LLVMBuild {
             static_link_libcpp: false,
             llvm_libc: false,
             enable_libcpp: false,
-            enable_pic: true,
+            enable_pic: false,
             enable_pdb: false,
             optimize_tblgen: false,
             temporarily_allow_old_toolchain: false,
@@ -83,7 +83,7 @@ impl LLVMBuild {
     }
 }
 
-impl LLVMBuild {
+impl LibClang {
     #[inline]
     pub fn set_major(&mut self, major: u32) {
         self.major = major;
@@ -203,7 +203,7 @@ impl LLVMBuild {
     }
 }
 
-impl LLVMBuild {
+impl LibClang {
     #[inline]
     pub fn major(&self) -> u32 {
         self.major
@@ -336,7 +336,7 @@ impl LLVMReleaseType {
     }
 }
 
-pub fn download_llvm(llvm_build: &LLVMBuild) -> Result<PathBuf, String> {
+pub fn download_llvm(llvm_build: &LibClang) -> Result<PathBuf, String> {
     let client: HttpClient = HttpClient::builder()
         .redirect_policy(RedirectPolicy::Follow)
         .build()
@@ -380,10 +380,7 @@ pub fn download_llvm(llvm_build: &LLVMBuild) -> Result<PathBuf, String> {
     Ok(full_path)
 }
 
-pub fn decompress_llvm(
-    llvm_build: &LLVMBuild,
-    llvm_archive_path: &Path,
-) -> Result<PathBuf, String> {
+pub fn decompress_llvm(llvm_build: &LibClang, llvm_archive_path: &Path) -> Result<PathBuf, String> {
     let mut tar_command: std::process::Command = std::process::Command::new("tar");
 
     tar_command
@@ -463,13 +460,13 @@ fn run_command_with_live_output(
 }
 
 pub fn build_and_install(
-    llvm_build: &LLVMBuild,
+    llvm_build: &LibClang,
     llvm_archive_path: PathBuf,
     llvm_source: PathBuf,
 ) -> Result<(), String> {
     let build_dir: PathBuf = llvm_source.join("llvm").join("build");
     let parent: &Path = build_dir.parent().unwrap_or(&build_dir);
-    let install_dir: PathBuf = utils::get_compiler_llvm_build_path();
+    let install_dir: PathBuf = utils::get_compiler_clang_build_path();
 
     let mut cmake_binding: std::process::Command = std::process::Command::new("cmake");
 
@@ -493,8 +490,7 @@ pub fn build_and_install(
         .arg(format!("-DCMAKE_CXX_FLAGS={}", llvm_build.cpp_flags()))
         .arg("-DCMAKE_DISABLE_FIND_PACKAGE_LibXml2=TRUE")
         .arg("-DLLVM_ENABLE_LIBXML2=0")
-        .arg("-DLLVM_TARGETS_TO_BUILD=all")
-        .arg("-DLLVM_ENABLE_PROJECTS=llvm")
+        .arg("-DLLVM_ENABLE_PROJECTS=clang")
         .arg("-DLLVM_ENABLE_TERMINFO=OFF")
         .arg("-DLLVM_ENABLE_ZLIB=OFF")
         .arg(format!("-DCMAKE_INSTALL_PREFIX={}", install_dir.display()))
@@ -599,7 +595,7 @@ fn clear_llvm_build(llvm_archive_path: &Path, llvm_source: &Path) {
     let _ = std::fs::remove_dir_all(llvm_source);
 }
 
-fn get_descompressed_folder_directory(llvm_build: &LLVMBuild) -> String {
+fn get_descompressed_folder_directory(llvm_build: &LibClang) -> String {
     format!(
         "llvm-project-{}.{}.{}.src",
         llvm_build.major, llvm_build.minor, llvm_build.patch

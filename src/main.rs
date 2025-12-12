@@ -2,6 +2,7 @@ use crate::builder::CompilerBuilderDependencies;
 use crate::cli::CommandLine;
 
 mod builder;
+mod clang;
 mod cli;
 mod constants;
 mod gcc;

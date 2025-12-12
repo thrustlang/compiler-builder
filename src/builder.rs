@@ -1,6 +1,6 @@
 use crate::logging::LoggingType;
 use crate::options::BuildOptions;
-use crate::{gcc, llvm, logging, utils};
+use crate::{clang, gcc, llvm, logging, utils};
 
 #[derive(Debug)]
 pub struct CompilerBuilderDependencies<'a> {
@@ -29,6 +29,17 @@ impl<'a> CompilerBuilderDependencies<'a> {
 
             logging::write(logging::OutputIn::Stdout, "GCC backend installed.\n\n");
         }
+
+        if self.get_options().get_build_cbindgen() {
+            if let Err(err) = self.build_cbindgen() {
+                logging::log(LoggingType::Panic, &err);
+            }
+
+            logging::write(
+                logging::OutputIn::Stdout,
+                "Clang installed and configured for the CBindgen.\n\n",
+            );
+        }
     }
 }
 
@@ -36,8 +47,7 @@ impl CompilerBuilderDependencies<'_> {
     fn build_llvm(&self) -> Result<(), String> {
         let llvm_build: &llvm::LLVMBuild = self.get_options().get_llvm_build();
 
-        let _ = std::fs::remove_dir(utils::get_compiler_dependencies_build_path());
-        let _ = std::fs::create_dir_all(utils::get_compiler_dependencies_build_path());
+        utils::reset_compiler_llvm_build_path();
 
         logging::write(logging::OutputIn::Stdout, "Downloading LLVM...\n");
 
@@ -64,6 +74,24 @@ impl CompilerBuilderDependencies<'_> {
 
         gcc::prepare_build_directory(&gcc_source)?;
         gcc::build_and_install(gcc_build, gcc_downloaded, gcc_source)?;
+
+        Ok(())
+    }
+
+    fn build_cbindgen(&self) -> Result<(), String> {
+        let llvm_build: &clang::LibClang = self.get_options().get_cbindgen_build();
+
+        utils::reset_compiler_clang_build_path();
+
+        logging::write(logging::OutputIn::Stdout, "Downloading Clang...\n");
+
+        let llvm_downloaded: std::path::PathBuf = clang::download_llvm(llvm_build)?;
+        let llvm_source: std::path::PathBuf = clang::decompress_llvm(llvm_build, &llvm_downloaded)?;
+
+        logging::write(logging::OutputIn::Stdout, "Building Clang...\n");
+
+        clang::prepare_build_directory(&llvm_source)?;
+        clang::build_and_install(llvm_build, llvm_downloaded, llvm_source)?;
 
         Ok(())
     }

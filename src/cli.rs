@@ -1,3 +1,4 @@
+use crate::clang;
 use crate::constants;
 use crate::help;
 use crate::llvm;
@@ -91,14 +92,18 @@ impl CommandLine {
 
         self.check_requirements();
 
-        self.prepare();
+        self.prepare_all();
     }
 
-    fn prepare(&mut self) {
+    fn prepare_all(&mut self) {
         self.get_mut_options().get_mut_llvm_build().setup_all();
 
         if self.get_options().get_build_gcc_backend() {
             self.get_mut_options().get_mut_gcc_build().setup_all();
+        }
+
+        if self.get_options().get_build_cbindgen() {
+            self.get_mut_options().get_mut_cbindgen_build().setup_all();
         }
     }
 
@@ -396,7 +401,6 @@ impl CommandLine {
 
             "-gcc" => {
                 self.advance();
-
                 self.get_mut_options().set_build_gcc_backend(true);
             }
 
@@ -488,6 +492,276 @@ impl CommandLine {
                     .set_cpp_compiler_command(command);
 
                 self.advance();
+            }
+
+            "--cbindgen" => {
+                self.advance();
+                self.get_mut_options().set_build_cbindgen(true);
+            }
+
+            "--cbindgen-major" => {
+                self.advance();
+
+                let major: u32 = self.peek().to_string().parse().unwrap_or(17);
+                self.get_mut_options()
+                    .get_mut_cbindgen_build()
+                    .set_major(major);
+
+                self.advance();
+            }
+
+            "--cbindgen-minor" => {
+                self.advance();
+
+                let minor: u32 = self.peek().to_string().parse().unwrap_or(0);
+                self.get_mut_options()
+                    .get_mut_cbindgen_build()
+                    .set_minor(minor);
+
+                self.advance();
+            }
+
+            "--cbindgen-patch" => {
+                self.advance();
+
+                let patch: u32 = self.peek().to_string().parse().unwrap_or(0);
+                self.get_mut_options()
+                    .get_mut_cbindgen_build()
+                    .set_patch(patch);
+
+                self.advance();
+            }
+
+            "--cbindgen-c-compiler" => {
+                self.advance();
+
+                let c_compiler: String = self.peek().to_string();
+
+                self.get_mut_options()
+                    .get_mut_cbindgen_build()
+                    .set_c_compiler(c_compiler);
+
+                self.advance();
+            }
+
+            "--cbindgen-cpp-compiler" => {
+                self.advance();
+
+                let cpp_compiler: String = self.peek().to_string();
+
+                self.get_mut_options()
+                    .get_mut_cbindgen_build()
+                    .set_cpp_compiler(cpp_compiler);
+
+                self.advance();
+            }
+
+            "--cbindgen-cpp-flags" => {
+                self.advance();
+
+                let flags: String = self.peek().to_string();
+
+                self.get_mut_options()
+                    .get_mut_cbindgen_build()
+                    .set_cpp_flags(flags);
+
+                self.advance();
+            }
+
+            "--cbindgen-c-flags" => {
+                self.advance();
+
+                let flags: String = self.peek().to_string();
+
+                self.get_mut_options()
+                    .get_mut_cbindgen_build()
+                    .set_c_flags(flags);
+
+                self.advance();
+            }
+
+            "--cbindgen-release-type" => {
+                self.advance();
+
+                match self.peek() {
+                    "Debug" => {
+                        self.get_mut_options()
+                            .get_mut_cbindgen_build()
+                            .set_release_type(clang::LLVMReleaseType::Debug);
+                    }
+
+                    "Release" => {
+                        self.get_mut_options()
+                            .get_mut_cbindgen_build()
+                            .set_release_type(clang::LLVMReleaseType::Release);
+                    }
+
+                    "MinSizeRel" => {
+                        self.get_mut_options()
+                            .get_mut_cbindgen_build()
+                            .set_release_type(clang::LLVMReleaseType::MinSizeRel);
+                    }
+
+                    _ => {
+                        self.get_mut_options()
+                            .get_mut_cbindgen_build()
+                            .set_release_type(clang::LLVMReleaseType::Release);
+                    }
+                }
+
+                self.advance();
+            }
+
+            "--cbindgen-build-share-libs" => {
+                self.advance();
+
+                let build_share_libs: bool = self.peek().to_string().parse().unwrap_or(true);
+
+                self.get_mut_options()
+                    .get_mut_cbindgen_build()
+                    .set_build_share_libs(build_share_libs);
+
+                self.advance();
+            }
+
+            "--cbindgen-build-x86-libs" => {
+                self.advance();
+
+                let build_x86_libs: bool = self.peek().to_string().parse().unwrap_or(true);
+
+                self.get_mut_options()
+                    .get_mut_cbindgen_build()
+                    .set_x86_libs(build_x86_libs);
+
+                self.advance();
+            }
+
+            "--cbindgen-build-dylib" => {
+                self.advance();
+
+                let build_dylib: bool = self.peek().to_string().parse().unwrap_or(true);
+
+                self.get_mut_options()
+                    .get_mut_cbindgen_build()
+                    .set_dylib(build_dylib);
+
+                self.advance();
+            }
+
+            "--cbindgen-link-statically-libcpp" => {
+                self.advance();
+
+                let link_statically_libcpp: bool = self.peek().to_string().parse().unwrap_or(true);
+
+                self.get_mut_options()
+                    .get_mut_cbindgen_build()
+                    .set_static_link_libcpp(link_statically_libcpp);
+
+                self.advance();
+            }
+
+            "--cbindgen-use-linker" => {
+                self.advance();
+
+                let use_linker: String = self.peek().to_string();
+
+                self.get_mut_options()
+                    .get_mut_cbindgen_build()
+                    .set_linker(use_linker);
+
+                self.advance();
+            }
+
+            "--cbindgen-use-llvm-libc" => {
+                self.advance();
+
+                let use_llvm_libc: bool = self.peek().parse().unwrap_or(false);
+
+                self.get_mut_options()
+                    .get_mut_cbindgen_build()
+                    .set_llvm_libc(use_llvm_libc);
+
+                self.advance();
+            }
+
+            "--cbindgen-pic" => {
+                self.advance();
+
+                let enable_pic: bool = self.peek().parse().unwrap_or(true);
+
+                self.get_mut_options()
+                    .get_mut_cbindgen_build()
+                    .set_enable_pic(enable_pic);
+
+                self.advance();
+            }
+
+            "--cbindgen-libcpp" => {
+                self.advance();
+
+                let enable_libcpp: bool = self.peek().parse().unwrap_or(false);
+
+                self.get_mut_options()
+                    .get_mut_cbindgen_build()
+                    .set_enable_libcpp(enable_libcpp);
+
+                self.advance();
+            }
+
+            "--cbindgen-clang-modules" => {
+                self.advance();
+
+                let enable_clang_modules: bool = self.peek().parse().unwrap_or(false);
+
+                self.get_mut_options()
+                    .get_mut_cbindgen_build()
+                    .set_enable_clang_modules(enable_clang_modules);
+
+                self.advance();
+            }
+
+            "--cbindgen-pdb" => {
+                self.advance();
+
+                let enable_pdb: bool = self.peek().parse().unwrap_or(false);
+
+                self.get_mut_options()
+                    .get_mut_cbindgen_build()
+                    .set_enable_pdb(enable_pdb);
+
+                self.advance();
+            }
+
+            "--cbindgen-temporarily-old-toolchain" => {
+                self.advance();
+
+                let temporarily_old_toolchain: bool = self.peek().parse().unwrap_or(false);
+
+                self.get_mut_options()
+                    .get_mut_cbindgen_build()
+                    .set_temporarily_allow_old_toolchain(temporarily_old_toolchain);
+
+                self.advance();
+            }
+
+            "--cbindgen-optimize-tblgen" => {
+                self.advance();
+
+                let optimize_tblgen: bool = self.peek().parse().unwrap_or(false);
+
+                self.get_mut_options()
+                    .get_mut_cbindgen_build()
+                    .set_optimize_tblgen(optimize_tblgen);
+
+                self.advance();
+            }
+
+            "--debug-cbindgen" => {
+                self.advance();
+
+                self.get_mut_options()
+                    .get_mut_cbindgen_build()
+                    .set_debug_commands(true);
             }
 
             "--debug-llvm" => {

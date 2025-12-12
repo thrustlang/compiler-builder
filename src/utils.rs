@@ -17,7 +17,7 @@ pub fn ninja_is_available() -> bool {
     Command::new("ninja").arg("--version").output().is_ok()
 }
 
-pub fn get_compiler_dependencies_build_path() -> PathBuf {
+pub fn get_compiler_llvm_build_path() -> PathBuf {
     match std::env::consts::FAMILY {
         "unix" => PathBuf::from(std::env::var("HOME").unwrap_or_else(|_| {
             logging::log(LoggingType::Panic, "Missing $HOME environment variable.\n");
@@ -37,10 +37,48 @@ pub fn get_compiler_dependencies_build_path() -> PathBuf {
         _ => {
             logging::log(
                 LoggingType::Panic,
-                "Unsopported OS for build Thrush Programming Language backend build.",
+                "Unsopported operating system for installing the dependencies required to build the Thrush Compiler LLVM backend.",
             );
 
             std::process::exit(1);
         }
     }
+}
+
+pub fn get_compiler_clang_build_path() -> PathBuf {
+    match std::env::consts::FAMILY {
+        "unix" => PathBuf::from(std::env::var("HOME").unwrap_or_else(|_| {
+            logging::log(LoggingType::Panic, "Missing $HOME environment variable.\n");
+            std::process::exit(1);
+        }))
+        .join(".thrushlang/backends/cbindgen/build"),
+
+        "windows" => PathBuf::from(std::env::var("APPDATA").unwrap_or_else(|_| {
+            logging::log(
+                LoggingType::Panic,
+                "Missing $APPDATA environment variable.\n",
+            );
+            std::process::exit(1);
+        }))
+        .join(".thrushlang/backends/cbindgen/build"),
+
+        _ => {
+            logging::log(
+                LoggingType::Panic,
+                "Unsopported operating system for installing the dependencies required to build the Thrush Compiler CBindgen.",
+            );
+
+            std::process::exit(1);
+        }
+    }
+}
+
+pub fn reset_compiler_llvm_build_path() {
+    let _ = std::fs::remove_dir(self::get_compiler_llvm_build_path());
+    let _ = std::fs::create_dir_all(self::get_compiler_llvm_build_path());
+}
+
+pub fn reset_compiler_clang_build_path() {
+    let _ = std::fs::remove_dir(self::get_compiler_clang_build_path());
+    let _ = std::fs::create_dir_all(self::get_compiler_clang_build_path());
 }
