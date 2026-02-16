@@ -23,7 +23,7 @@ pub fn get_compiler_llvm_build_path() -> PathBuf {
             logging::log(LoggingType::Panic, "Missing $HOME environment variable.\n");
             std::process::exit(1);
         }))
-        .join(".thrushlang/backends/llvm/build"),
+        .join(".thrustlang/backends/llvm/build"),
 
         "windows" => PathBuf::from(std::env::var("APPDATA").unwrap_or_else(|_| {
             logging::log(
@@ -32,12 +32,12 @@ pub fn get_compiler_llvm_build_path() -> PathBuf {
             );
             std::process::exit(1);
         }))
-        .join(".thrushlang/backends/llvm/build"),
+        .join(".thrustlang/backends/llvm/build"),
 
         _ => {
             logging::log(
                 LoggingType::Panic,
-                "Unsopported operating system for installing the dependencies required to build the Thrush Compiler LLVM backend.",
+                "Unsopported operating system for installing the dependencies required to build the Thrust Compiler LLVM backend.",
             );
 
             std::process::exit(1);
@@ -51,7 +51,7 @@ pub fn get_compiler_clang_build_path() -> PathBuf {
             logging::log(LoggingType::Panic, "Missing $HOME environment variable.\n");
             std::process::exit(1);
         }))
-        .join(".thrushlang/backends/cbindgen/build"),
+        .join(".thrustlang/backends/cbindgen/build"),
 
         "windows" => PathBuf::from(std::env::var("APPDATA").unwrap_or_else(|_| {
             logging::log(
@@ -60,12 +60,12 @@ pub fn get_compiler_clang_build_path() -> PathBuf {
             );
             std::process::exit(1);
         }))
-        .join(".thrushlang/backends/cbindgen/build"),
+        .join(".thrustlang/backends/cbindgen/build"),
 
         _ => {
             logging::log(
                 LoggingType::Panic,
-                "Unsopported operating system for installing the dependencies required to build the Thrush Compiler CBindgen.",
+                "Unsopported operating system for installing the dependencies required to build the Thrust Compiler CBindgen.",
             );
 
             std::process::exit(1);
@@ -73,11 +73,13 @@ pub fn get_compiler_clang_build_path() -> PathBuf {
     }
 }
 
+#[inline]
 pub fn reset_compiler_llvm_build_path() {
     let _ = std::fs::remove_dir(self::get_compiler_llvm_build_path());
     let _ = std::fs::create_dir_all(self::get_compiler_llvm_build_path());
 }
 
+#[inline]
 pub fn reset_compiler_clang_build_path() {
     let _ = std::fs::remove_dir(self::get_compiler_clang_build_path());
     let _ = std::fs::create_dir_all(self::get_compiler_clang_build_path());
